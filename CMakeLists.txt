@@ -1,12 +1,24 @@
+cmake_minimum_required(VERSION 3.9)
 project(GarbageGopher)
-# include_directories(include)
+include_directories(include)
 file(GLOB SOURCES "src/*.cpp")
 add_executable(GarbageGopher ${SOURCES})
 
-# Declare the dependency on Python 3.7 and the Jetson.GPIO library
-SET(GCC_COVERAGE_COMPILE_FLAGS "$(python3.7-config --cflags )")
-SET(GCC_COVERAGE_LINK_FLAGS    "$(python3.7-config --ldflags) -fPIC -lJetsonGPIO -lpthread")
+# 
+find_package(PythonLibs REQUIRED)
+include_directories(${PYTHON_INCLUDE_DIRS})
+target_link_libraries(GarbageGopher ${PYTHON_LIBRARIES})
 
-# Add the flags to the compiler
-SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}")
-SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS}")
+#
+find_package(JetsonGPIO)
+target_link_libraries(GarbageGopher JetsonGPIO::JetsonGPIO)
+
+
+
+# # Declare the dependency on Python 3.7 and the Jetson.GPIO library
+# SET(GCC_COVERAGE_COMPILE_FLAGS "")
+# SET(GCC_COVERAGE_LINK_FLAGS    "-fPIC")
+
+# # Add the flags to the compiler
+# SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}")
+# SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS}")

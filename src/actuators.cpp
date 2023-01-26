@@ -1,4 +1,5 @@
-#include "pyheader.cpp"
+#include <Python.h>
+#include <pyheader.h>
 
 PyObject *initServoKit()
 {

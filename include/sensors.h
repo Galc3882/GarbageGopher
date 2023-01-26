@@ -1,0 +1,5 @@
+//
+int ultrasonicDistance();
+
+//
+void setupGPIOcpp();

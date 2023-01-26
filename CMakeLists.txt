@@ -4,12 +4,12 @@ include_directories(include)
 file(GLOB SOURCES "src/*.cpp")
 add_executable(GarbageGopher ${SOURCES})
 
-# 
+# Link the Python library
 find_package(PythonLibs REQUIRED)
 include_directories(${PYTHON_INCLUDE_DIRS})
 target_link_libraries(GarbageGopher ${PYTHON_LIBRARIES})
 
-#
+# Link the Jetson.GPIO library
 find_package(JetsonGPIO)
 target_link_libraries(GarbageGopher JetsonGPIO::JetsonGPIO)
 

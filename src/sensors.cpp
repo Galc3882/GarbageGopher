@@ -4,7 +4,7 @@
 int ultrasonicDistance()
 {
     // Uses pins 19 for trigger and 21 for echo
-    // Send pulse and wait for echo, then calculate distance
+    // Send pulse and wait for echo using interupts, then calculate distance
     // Ranging Distance : 2cm – 400 cm
     // Resolution : 0.3 cm
     // Measuring Angle: 30 degree

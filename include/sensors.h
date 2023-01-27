@@ -6,26 +6,29 @@ public:
     UltrasonicSensor();
     // destructor
     ~UltrasonicSensor();
-    // check if processing reading
-    bool processingReading;
-    // trigger pin
-    int triggerPin;
-    // echo pin
-    int echoPin;
     // get distance in cm
     int getDistance();
-    // trigger reading function
-    void triggerReading();
-    // callback function for echo pin
-    void echoRisingCallback();
-    // callback function for echo pin on falling edge
-    void echoFallingCallback();
+    // thread for reading
+    void ultrasonicDistanceThread();
+    // stop reading
+    void stopReading();
+
 private:
-    // last echo rise time
-    std::chrono::high_resolution_clock::time_point lastEchoRiseTime;
-    // last reading time
-    std::chrono::high_resolution_clock::time_point lastReadingTime;
-    // last readings
+    // set trigger pin
+    int triggerPin;
+    // set echo pin
+    int echoPin;
+    // check if processing reading
+    bool processingReading;
+    // check if reading
+    bool reading;
+    // last sensor readings
     int lastReadings[5];
-    // processing reading
+    // last reading time
+    std::chrono::time_point<std::chrono::system_clock> lastReadingTime;
+    
+    // trigger reading
+    void triggerReading();
+    // wait for echo pin to go high and then low to calculate distance
+    void waitForReading();
 };

@@ -105,7 +105,7 @@ private:
         
         waitForReading();
     }
-
+    // wait for echo pin to go high and then low to calculate distance
     void waitForReading()
     {
         // wait for echo pin to go high with timeout (40 ms no obsticle)

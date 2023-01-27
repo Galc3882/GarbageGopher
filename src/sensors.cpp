@@ -30,6 +30,10 @@ public:
 
     // check if processing reading
     bool processingReading = false;
+    // set trigger pin
+    int triggerPin;
+    // set echo pin
+    int echoPin;
 
     // get distance in cm
     int getDistance()
@@ -90,10 +94,6 @@ public:
     }
 
 private:
-    // set trigger pin
-    int triggerPin;
-    // set echo pin
-    int echoPin;
     // last sensor readings
     int lastReadings[5];
     // last reading time

@@ -51,9 +51,10 @@ int main(void)
     // read once
     ultrasonicSensor.triggerReading();
     // set echo pin callback function for rising edge with timeout (40 ms no obsticle)
-    GPIO::add_event_detect(this->echoPin, GPIO::RISING, ultrasonicSensor.echoRisingCallback, 40000);
+    GPIO::add_event_detect(ultrasonicSensor.echoPin, GPIO::RISING, ultrasonicSensor.echoRisingCallback, 40000);
     // set echo pin callback function for falling edge with timeout (40 ms no obsticle)
-    GPIO::add_event_detect(this->echoPin, GPIO::FALLING, ultrasonicSensor.echoFallingCallback, 40000);
+    GPIO::add_event_detect(ultrasonicSensor.echoPin, GPIO::FALLING, ultrasonicSensor.echoFallingCallback, 40000);
+
 
     // benchmarking counter
     int counter = 0;

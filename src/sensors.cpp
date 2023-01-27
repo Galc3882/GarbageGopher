@@ -14,6 +14,8 @@ public:
     // constructor
     UltrasonicSensor()
     {
+        // setup GPIO
+        GPIO::setmode(GPIO::BOARD); 
         // set pins to trigger and echo
         this->triggerPin = 19;
         this->echoPin = 21;
@@ -26,14 +28,16 @@ public:
     }
 
     // destructor
-    ~UltrasonicSensor();
-
-    // check if processing reading
-    bool processingReading = false;
-    // set trigger pin
-    int triggerPin;
-    // set echo pin
-    int echoPin;
+    ~UltrasonicSensor() {
+        // stop reading
+        this->stopReading();
+        // set trigger pin to low
+        GPIO::output(this->triggerPin, GPIO::LOW);
+        // set echo pin to low
+        GPIO::output(this->echoPin, GPIO::LOW);
+        // cleanup GPIO
+        GPIO::cleanup();
+    }   
 
     // get distance in cm
     int getDistance()
@@ -42,10 +46,44 @@ public:
         int sum = 0;
         for (int i = 0; i < 5; i++)
         {
-            sum += this->lastReadings[i];
+            // if no null value, add to sum
+            if (this->lastReadings[i] != 0)
+            {
+                sum += this->lastReadings[i];
+            }
         }
         return sum / 5;
     }
+
+    // thread for reading
+    void ultrasonicDistanceThread()
+    {
+        this->reading = true;
+        while (reading) {
+            this=>triggerReading();
+            // sleep for 50 ms
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        }
+    }
+
+    void stopReading()
+    {
+        this->reading = false;
+    }
+
+private:
+    // set trigger pin
+    int triggerPin;
+    // set echo pin
+    int echoPin;
+    // check if processing reading
+    bool processingReading = false;
+    // check if reading
+    bool reading = false;
+    // last sensor readings
+    int lastReadings[5];
+    // last reading time
+    std::chrono::high_resolution_clock::time_point lastReadingTime;
 
     // trigger reading function
     void triggerReading()
@@ -56,31 +94,51 @@ public:
             return;
         }
 
+        // processing reading
+        this->processingReading = true;
         // set trigger pin to high
         GPIO::output(this->triggerPin, GPIO::HIGH);
         // wait 10 microseconds (https://web.eece.maine.edu/~zhu/book/lab/HC-SR04%20User%20Manual.pdf)
         std::this_thread::sleep_for(std::chrono::microseconds(10));
         // set trigger pin to low
         GPIO::output(this->triggerPin, GPIO::LOW);
-        // processing reading
-        this->processingReading = true;
+        
+        waitForReading();
     }
 
-        // callback function for echo pin
-    void echoRisingCallback()
+    void waitForReading()
     {
-        // measure time between high and low
-        this->lastEchoRiseTime = std::chrono::high_resolution_clock::now();
-    }
+        // wait for echo pin to go high with timeout (40 ms no obsticle)
+        auto start = std::chrono::high_resolution_clock::now();
+        while (GPIO::input(21) == GPIO::LOW)
+        {
+            // check if timeout
+            auto now = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(now - start);
+            if (duration.count() > 40000)
+            {
+                return -1;
+            }
+        }
 
-    // callback function for echo pin on falling edge
-    void echoFallingCallback()
-    {
         // measure time between high and low
+        start = std::chrono::high_resolution_clock::now();
+        while (GPIO::input(21) == GPIO::HIGH)
+        {
+            // check if timeout
+            auto now = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(now - start);
+            if (duration.count() > 40000)
+            {
+                return -1;
+            }
+        }
+
+        // calculate distance
         auto now = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(now - this->lastEchoRiseTime);
-        // calculate distance in cm
-        int distance = duration.count() / 58;
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(now - start);
+        int distance =  duration.count() / 58;
+
         // add to last readings
         for (int i = 4; i > 0; i--)
         {
@@ -92,12 +150,4 @@ public:
         // set reading time
         this->lastReadingTime = now;
     }
-
-private:
-    // last sensor readings
-    int lastReadings[5];
-    // last reading time
-    std::chrono::high_resolution_clock::time_point lastReadingTime;
-    // last trigger time
-    std::chrono::high_resolution_clock::time_point lastEchoRiseTime;
 };

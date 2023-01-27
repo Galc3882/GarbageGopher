@@ -2,6 +2,7 @@
 #include <chrono>
 #include <thread>
 #include <stdio.h>
+#include <thread>
 #include <JetsonGPIO.h>
 #include <Python.h>
 #include <sensors.h>
@@ -37,48 +38,21 @@ int main(void)
 {
     // testLid();
 
-    // setup GPIO
-    GPIO::setmode(GPIO::BOARD);
-
     // create ultrasonic sensor object
     UltrasonicSensor ultrasonicSensor;
 
-    // set current time
-    std::chrono::high_resolution_clock::time_point currentTime = std::chrono::high_resolution_clock::now();
+    // open new thread for reading
+    std::thread ultrasonicThread(&UltrasonicSensor::ultrasonicDistanceThread, &ultrasonicSensor);
 
-    // set variables for reading time
-    std::chrono::high_resolution_clock::time_point readingTime = std::chrono::high_resolution_clock::now();
-    // read once
-    ultrasonicSensor.triggerReading();
-    // set echo pin callback function for rising edge with timeout (40 ms no obsticle)
-    GPIO::add_event_detect(ultrasonicSensor.echoPin, GPIO::RISING, ultrasonicSensor.echoRisingCallback, 40000);
-    // set echo pin callback function for falling edge with timeout (40 ms no obsticle)
-    GPIO::add_event_detect(ultrasonicSensor.echoPin, GPIO::FALLING, ultrasonicSensor.echoFallingCallback, 40000);
-
-
-    // benchmarking counter
-    int counter = 0;
-
-    // loop for 1 minute
-    while (currentTime - std::chrono::high_resolution_clock::now() < std::chrono::minutes(1))
+    // wait for 1 minute and count every 1/4 second
+    for (int i = 0; i < 240; i++)
     {
-        // measure distance every 20th of a second
-        if (!ultrasonicSensor.processingReading && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - readingTime).count() >= 20){
-            ultrasonicSensor.triggerReading();
-            readingTime = std::chrono::high_resolution_clock::now();
-            // print distance
-            std::cout << ultrasonicSensor.getDistance() << std::endl;
-        }
-
-        // increment counter
-        counter++;
+        // print distance
+        std::cout << ultrasonicSensor.getDistance() << std::endl;
+        // sleep for 1/4 second
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
     }
 
-    // print benchmarking results
-    std::cout << "Benchmarking results: " << counter << std::endl;
-
-    // cleanup GPIO
-    GPIO::cleanup();
 
     return 0;
 }

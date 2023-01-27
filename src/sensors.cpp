@@ -23,10 +23,6 @@ public:
         GPIO::setup(this->echoPin, GPIO::IN);
         // set trigger pin to low
         GPIO::output(this->triggerPin, GPIO::LOW);
-        // set echo pin callback function for rising edge with timeout (40 ms no obsticle)
-        GPIO::add_event_detect(this->echoPin, GPIO::RISING, std::bind(&UltrasonicSensor::echoRisingCallback, this), 40000);
-        // set echo pin callback function for falling edge with timeout (40 ms no obsticle)
-        GPIO::add_event_detect(this->echoPin, GPIO::FALLING, std::bind(&UltrasonicSensor::echoFallingCallback, this), 40000);
     }
 
     // destructor
@@ -66,15 +62,7 @@ public:
         this->processingReading = true;
     }
 
-private:
-    // last sensor readings
-    int lastReadings[5];
-    // last reading time
-    std::chrono::high_resolution_clock::time_point lastReadingTime;
-    // last trigger time
-    std::chrono::high_resolution_clock::time_point lastEchoRiseTime;
-
-    // callback function for echo pin
+        // callback function for echo pin
     void echoRisingCallback()
     {
         // measure time between high and low
@@ -100,4 +88,16 @@ private:
         // set reading time
         this->lastReadingTime = now;
     }
+
+private:
+    // set trigger pin
+    int triggerPin;
+    // set echo pin
+    int echoPin;
+    // last sensor readings
+    int lastReadings[5];
+    // last reading time
+    std::chrono::high_resolution_clock::time_point lastReadingTime;
+    // last trigger time
+    std::chrono::high_resolution_clock::time_point lastEchoRiseTime;
 };

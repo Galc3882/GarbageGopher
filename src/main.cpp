@@ -2,7 +2,6 @@
 #include <chrono>
 #include <thread>
 #include <stdio.h>
-#include <thread>
 #include <JetsonGPIO.h>
 #include <Python.h>
 #include <sensors.hpp>
@@ -44,13 +43,13 @@ int main(void)
     // open new thread for reading
     std::thread ultrasonicThread (&UltSensor::UltrasonicSensor::ultrasonicDistanceThread, &ultrasonicSensor);
 
-    // wait for 1 minute and count every 1/4 second
-    for (int i = 0; i < 240; i++)
+    for (int i = 0; i < 60; i++)
     {
         // print distance
-        std::cout << ultrasonicSensor.getDistance() << std::endl;
+        // std::cout << ultrasonicSensor.getDistance() << std::endl;
+        ultrasonicSensor.printDebug();
         // sleep for 1/4 second
-        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
 
     // stop reading

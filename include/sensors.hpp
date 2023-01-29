@@ -19,6 +19,8 @@ namespace UltSensor
         UltrasonicSensor();
         // destructor
         ~UltrasonicSensor();
+        // debug function
+        void printDebug();
         // get distance in cm
         int getDistance();
         // thread for reading

@@ -1,6 +1,6 @@
-// #include <thread>
-// #include <JetsonGPIO.h>
-
+#include <thread>
+#include <iostream> // remove
+#include <JetsonGPIO.h>
 #include "sensors.hpp"
 
 // constructor
@@ -23,6 +23,11 @@ UltSensor::UltrasonicSensor::UltrasonicSensor()
     this->reading = false;
     // set last readings time to now
     this->lastReadingTime = std::chrono::high_resolution_clock::now();
+    // set last readings to 0
+    for (int i = 0; i < 5; i++)
+    {
+        this->lastReadings[i] = 0;
+    }
 }
 
 // destructor
@@ -30,12 +35,26 @@ UltSensor::UltrasonicSensor::~UltrasonicSensor()
 {
     // stop reading
     this->stopReading();
-    // set trigger pin to low
-    GPIO::output(this->triggerPin, GPIO::LOW);
-    // set echo pin to low
-    GPIO::output(this->echoPin, GPIO::LOW);
     // cleanup GPIO
     GPIO::cleanup();
+}
+
+// debug function
+void UltSensor::UltrasonicSensor::printDebug()
+{
+    // print time
+    std::cout << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - this->lastReadingTime).count() << " ms" << std::endl;
+    // get distance
+    int distance = this->getDistance();
+    // print distance
+    std::cout << "Distance: " << distance << " cm" << std::endl;
+    // print last readings
+    std::cout << "Last Readings: ";
+    for (int i = 0; i < 5; i++)
+    {
+        std::cout << this->lastReadings[i] << " ";
+    }
+    std::cout << std::endl;
 }
 
 // get distance in cm
@@ -105,6 +124,7 @@ void UltSensor::UltrasonicSensor::waitForReading()
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(now - start);
         if (duration.count() > 40000)
         {
+            this->processingReading = false;
             return;
         }
     }
@@ -118,6 +138,7 @@ void UltSensor::UltrasonicSensor::waitForReading()
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(now - start);
         if (duration.count() > 40000)
         {
+            this->processingReading = false;
             return;
         }
     }

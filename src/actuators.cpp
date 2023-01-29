@@ -1,5 +1,5 @@
 #include <Python.h>
-#include <pyheader.h>
+#include <pyheader.hpp>
 
 PyObject *initServoKit()
 {

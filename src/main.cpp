@@ -5,8 +5,8 @@
 #include <thread>
 #include <JetsonGPIO.h>
 #include <Python.h>
-#include <sensors.h>
-#include <actuators.h>
+#include <sensors.hpp>
+#include <actuators.hpp>
 
 void testLid()
 {
@@ -39,10 +39,10 @@ int main(void)
     // testLid();
 
     // create ultrasonic sensor object
-    UltrasonicSensor ultrasonicSensor;
+    UltSensor::UltrasonicSensor ultrasonicSensor = UltSensor::UltrasonicSensor();
 
     // open new thread for reading
-    std::thread ultrasonicThread(&UltrasonicSensor::ultrasonicDistanceThread, &ultrasonicSensor);
+    std::thread ultrasonicThread (&UltSensor::UltrasonicSensor::ultrasonicDistanceThread, &ultrasonicSensor);
 
     // wait for 1 minute and count every 1/4 second
     for (int i = 0; i < 240; i++)
@@ -52,6 +52,11 @@ int main(void)
         // sleep for 1/4 second
         std::this_thread::sleep_for(std::chrono::milliseconds(250));
     }
+
+    // stop reading
+    ultrasonicSensor.stopReading();
+    // join thread
+    ultrasonicThread.join();
 
     return 0;
 }

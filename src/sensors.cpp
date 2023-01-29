@@ -1,153 +1,140 @@
-#include <thread>
-#include <JetsonGPIO.h>
+// #include <thread>
+// #include <JetsonGPIO.h>
 
-// declare class for ultrasonic sensor object
-class UltrasonicSensor
+#include "sensors.hpp"
+
+// constructor
+UltSensor::UltrasonicSensor::UltrasonicSensor()
 {
-public:
-    // Uses pins 19 for trigger and 21 for echo
-    // Send pulse and wait for echo using interupts, then calculate distance
-    // Ranging Distance : 2cm – 400 cm
-    // Resolution : 0.3 cm
-    // Measuring Angle: 30 degree
+    // setup GPIO
+    GPIO::setmode(GPIO::BOARD);
+    // set pins to trigger and echo
+    this->triggerPin = 19;
+    this->echoPin = 21;
+    // set trigger pin to output
+    GPIO::setup(this->triggerPin, GPIO::OUT);
+    // set echo pin to input
+    GPIO::setup(this->echoPin, GPIO::IN);
+    // set trigger pin to low
+    GPIO::output(this->triggerPin, GPIO::LOW);
+    //set processing reading to false
+    this->processingReading = false;
+    // set reading to false
+    this->reading = false;
+    // set last readings time to now
+    this->lastReadingTime = std::chrono::high_resolution_clock::now();
+}
 
-    // constructor
-    UltrasonicSensor()
+// destructor
+UltSensor::UltrasonicSensor::~UltrasonicSensor()
+{
+    // stop reading
+    this->stopReading();
+    // set trigger pin to low
+    GPIO::output(this->triggerPin, GPIO::LOW);
+    // set echo pin to low
+    GPIO::output(this->echoPin, GPIO::LOW);
+    // cleanup GPIO
+    GPIO::cleanup();
+}
+
+// get distance in cm
+int UltSensor::UltrasonicSensor::getDistance()
+{
+    // get average of last 5 readings
+    int sum = 0;
+    for (int i = 0; i < 5; i++)
     {
-        // setup GPIO
-        GPIO::setmode(GPIO::BOARD); 
-        // set pins to trigger and echo
-        this->triggerPin = 19;
-        this->echoPin = 21;
-        // set trigger pin to output
-        GPIO::setup(this->triggerPin, GPIO::OUT);
-        // set echo pin to input
-        GPIO::setup(this->echoPin, GPIO::IN);
-        // set trigger pin to low
-        GPIO::output(this->triggerPin, GPIO::LOW);
-    }
-
-    // destructor
-    ~UltrasonicSensor() {
-        // stop reading
-        this->stopReading();
-        // set trigger pin to low
-        GPIO::output(this->triggerPin, GPIO::LOW);
-        // set echo pin to low
-        GPIO::output(this->echoPin, GPIO::LOW);
-        // cleanup GPIO
-        GPIO::cleanup();
-    }   
-
-    // get distance in cm
-    int getDistance()
-    {
-        // get average of last 5 readings
-        int sum = 0;
-        for (int i = 0; i < 5; i++)
+        // if no null value, add to sum
+        if (this->lastReadings[i] != 0)
         {
-            // if no null value, add to sum
-            if (this->lastReadings[i] != 0)
-            {
-                sum += this->lastReadings[i];
-            }
-        }
-        return sum / 5;
-    }
-
-    // thread for reading
-    void ultrasonicDistanceThread()
-    {
-        this->reading = true;
-        while (reading) {
-            this=>triggerReading();
-            // sleep for 50 ms
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            sum += this->lastReadings[i];
         }
     }
+    return sum / 5;
+}
 
-    void stopReading()
+// thread for reading
+void UltSensor::UltrasonicSensor::ultrasonicDistanceThread()
+{
+    this->reading = true;
+    while (reading)
     {
-        this->reading = false;
+        // trigger reading
+        this->triggerReading();
+        // sleep for 50 ms
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+}
+
+void UltSensor::UltrasonicSensor::stopReading()
+{
+    this->reading = false;
+}
+
+// trigger reading function
+void UltSensor::UltrasonicSensor::triggerReading()
+{
+    // check if processing reading or last reading was less than 80 ms ago
+    if (this->processingReading || std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - this->lastReadingTime).count() < 80)
+    {
+        return;
     }
 
-private:
-    // set trigger pin
-    int triggerPin;
-    // set echo pin
-    int echoPin;
-    // check if processing reading
-    bool processingReading = false;
-    // check if reading
-    bool reading = false;
-    // last sensor readings
-    int lastReadings[5];
-    // last reading time
-    std::chrono::high_resolution_clock::time_point lastReadingTime;
+    // processing reading
+    this->processingReading = true;
+    // set trigger pin to high
+    GPIO::output(this->triggerPin, GPIO::HIGH);
+    // wait 10 microseconds (https://web.eece.maine.edu/~zhu/book/lab/HC-SR04%20User%20Manual.pdf)
+    std::this_thread::sleep_for(std::chrono::microseconds(10));
+    // set trigger pin to low
+    GPIO::output(this->triggerPin, GPIO::LOW);
 
-    // trigger reading function
-    void triggerReading()
+    waitForReading();
+}
+
+// wait for echo pin to go high and then low to calculate distance
+void UltSensor::UltrasonicSensor::waitForReading()
+{
+    // wait for echo pin to go high with timeout (40 ms no obsticle)
+    auto start = std::chrono::high_resolution_clock::now();
+    while (GPIO::input(21) == GPIO::LOW)
     {
-        // check if processing reading or last reading was less than 80 ms ago
-        if (this->processingReading || std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - this->lastReadingTime).count() < 80)
+        // check if timeout
+        auto now = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(now - start);
+        if (duration.count() > 40000)
         {
             return;
         }
-
-        // processing reading
-        this->processingReading = true;
-        // set trigger pin to high
-        GPIO::output(this->triggerPin, GPIO::HIGH);
-        // wait 10 microseconds (https://web.eece.maine.edu/~zhu/book/lab/HC-SR04%20User%20Manual.pdf)
-        std::this_thread::sleep_for(std::chrono::microseconds(10));
-        // set trigger pin to low
-        GPIO::output(this->triggerPin, GPIO::LOW);
-        
-        waitForReading();
     }
-    // wait for echo pin to go high and then low to calculate distance
-    void waitForReading()
+
+    // measure time between high and low
+    start = std::chrono::high_resolution_clock::now();
+    while (GPIO::input(21) == GPIO::HIGH)
     {
-        // wait for echo pin to go high with timeout (40 ms no obsticle)
-        auto start = std::chrono::high_resolution_clock::now();
-        while (GPIO::input(21) == GPIO::LOW)
-        {
-            // check if timeout
-            auto now = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(now - start);
-            if (duration.count() > 40000)
-            {
-                return -1;
-            }
-        }
-
-        // measure time between high and low
-        start = std::chrono::high_resolution_clock::now();
-        while (GPIO::input(21) == GPIO::HIGH)
-        {
-            // check if timeout
-            auto now = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(now - start);
-            if (duration.count() > 40000)
-            {
-                return -1;
-            }
-        }
-
-        // calculate distance
+        // check if timeout
         auto now = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(now - start);
-        int distance =  duration.count() / 58;
-
-        // add to last readings
-        for (int i = 4; i > 0; i--)
+        if (duration.count() > 40000)
         {
-            this->lastReadings[i] = this->lastReadings[i - 1];
+            return;
         }
-        this->lastReadings[0] = distance;
-        // not processing reading
-        this->processingReading = false;
-        // set reading time
-        this->lastReadingTime = now;
     }
-};
+
+    // calculate distance
+    auto now = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(now - start);
+    int distance = duration.count() / 58;
+
+    // add to last readings
+    for (int i = 4; i > 0; i--)
+    {
+        this->lastReadings[i] = this->lastReadings[i - 1];
+    }
+    this->lastReadings[0] = distance;
+    // not processing reading
+    this->processingReading = false;
+    // set reading time
+    this->lastReadingTime = now;
+}

@@ -17,7 +17,7 @@ UltSensor::UltrasonicSensor::UltrasonicSensor()
     GPIO::setup(this->echoPin, GPIO::IN);
     // set trigger pin to low
     GPIO::output(this->triggerPin, GPIO::LOW);
-    //set processing reading to false
+    // set processing reading to false
     this->processingReading = false;
     // set reading to false
     this->reading = false;

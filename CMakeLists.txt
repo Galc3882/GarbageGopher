@@ -14,6 +14,16 @@ target_link_libraries(GarbageGopher ${PYTHON_LIBRARIES})
 find_package(JetsonGPIO)
 target_link_libraries(GarbageGopher JetsonGPIO::JetsonGPIO)
 
+# Link the OpenCV library
+find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
+target_link_libraries(GarbageGopher ${OpenCV_LIBS})
+
+# Link the ONNX library
+find_package(ONNX REQUIRED)
+include_directories(${ONNX_INCLUDE_DIRS})
+target_link_libraries(GarbageGopher ${ONNX_LIBS})
+
 # # Enable verbose output
 # set(CMAKE_VERBOSE_MAKEFILE ON)
 

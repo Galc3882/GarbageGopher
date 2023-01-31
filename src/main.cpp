@@ -4,8 +4,10 @@
 #include <stdio.h>
 #include <JetsonGPIO.h>
 #include <Python.h>
+#include <opencv2/opencv.hpp>
 #include <sensors.hpp>
 #include <actuators.hpp>
+#include <camera.hpp>
 
 void testLid()
 {
@@ -33,15 +35,14 @@ void testLid()
     Py_Finalize();
 }
 
-int main(void)
+// ultrasonic sensor test
+void testUltrasonic()
 {
-    // testLid();
-
     // create ultrasonic sensor object
     UltSensor::UltrasonicSensor ultrasonicSensor = UltSensor::UltrasonicSensor();
 
     // open new thread for reading
-    std::thread ultrasonicThread (&UltSensor::UltrasonicSensor::ultrasonicDistanceThread, &ultrasonicSensor);
+    std::thread ultrasonicThread(&UltSensor::UltrasonicSensor::ultrasonicDistanceThread, &ultrasonicSensor);
 
     for (int i = 0; i < 60; i++)
     {
@@ -56,6 +57,37 @@ int main(void)
     ultrasonicSensor.stopReading();
     // join thread
     ultrasonicThread.join();
+}
+
+int main(void)
+{
+    // testLid();
+    // testUltrasonic();
+
+    // initialize camera
+    cv::VideoCapture cap = initializeCamera();
+
+    // load onnx model
+    Ort::Session session = LoadModel("model/model-f6b98070.onnx");
+
+    // get input image from camera
+    cv::Mat input = getCameraImage(cap);
+
+    // convert input image to gpu memory
+    cv::cuda::GpuMat inputGpu = cv::cuda::GpuMat(input);
+
+    // run model on input image
+    cv::cuda::GpuMat output = RunModel(session, input);
+
+    // convert output image from gpu memory to cpu memory
+    cv::Mat outputCpu = cv::Mat(output);
+
+    // show output image
+    cv::imshow("output", outputCpu);
+    cv::waitKey(0);
+
+    // destroy camera
+    destroyCamera(cap);
 
     return 0;
 }

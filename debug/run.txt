@@ -1,3 +1,0 @@
-g++ $(python3.7-config --cflags ) -o main.o main.cpp $(python3.7-config --ldflags) -fPIC -lJetsonGPIO -lpthread
-
-sudo ldconfig

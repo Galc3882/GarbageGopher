@@ -1,23 +1,35 @@
-#pragma once
 #ifndef CAMERA_HPP
 #define CAMERA_HPP
 
-// function to load onnx model
-Ort::Session LoadModel(const char *model_path);
+#include <opencv2/opencv.hpp>
 
-// forward run onnx model on input image and return output image in gpu memory
-cv::cuda::GpuMat RunModel(Ort::Session &session, cv::cuda::GpuMat &input);
+class Camera {
+public:
+    // Default constructor
+    Camera(int capture_width = 1280, int capture_height = 720, 
+           int display_width = 1280, int display_height = 720,
+           int framerate = 30, int flip_method = 2);
 
-// camera streaming pipeline
-std::string gstreamer_pipeline(int capture_width, int capture_height, int display_width, int display_height, int framerate, int flip_method);
+    // Initialize the camera
+    cv::VideoCapture initializeCamera();
 
-// initialize camera
-cv::VideoCapture initializeCamera();
+    // Get an image from the camera
+    cv::Mat getCameraImage(cv::VideoCapture &cap);
 
-// get input image from camera
-cv::Mat getCameraImage(cv::VideoCapture &cap);
+    // Release the camera resource
+    void destroyCamera(cv::VideoCapture &cap);
 
-// destroy camera
-void destroyCamera(cv::VideoCapture &cap);
+private:
+    // Private variables to hold camera configuration
+    int capture_width_;
+    int capture_height_;
+    int display_width_;
+    int display_height_;
+    int framerate_;
+    int flip_method_;
+
+    // Helper function to build the GStreamer pipeline string
+    std::string gstreamer_pipeline();
+};
 
 #endif // CAMERA_HPP

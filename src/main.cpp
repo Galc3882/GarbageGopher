@@ -1,93 +1,79 @@
+// main.cpp
 #include <iostream>
-#include <chrono>
-#include <thread>
-#include <stdio.h>
-#include <JetsonGPIO.h>
-#include <Python.h>
-#include <opencv2/opencv.hpp>
-#include <sensors.hpp>
-#include <actuators.hpp>
-#include <camera.hpp>
+#include "actuators.hpp"
+#include "camera.hpp"
+#include "image_processing.hpp"
+#include "localization.hpp"
+#include "ml_model.hpp"
+#include "navigation.hpp"
+#include "path_planning.hpp"
+#include "sensors.hpp"
+#include "pyheader.hpp"
 
-void testLid()
+int main()
 {
-    // Set the PYTHONPATH environment variable to the current directory
-    setenv("PYTHONPATH", ".", 1);
-    // Initialize the Python Interpreter
-    Py_Initialize();
+    std::cout << "GarbageGopher Autonomous Garbage Bin Initialized" << std::endl;
 
-    // Initialize the ServoKit
-    PyObject *kit = initServoKit();
+    // Initializing components
+    Camera camera;
+    cv::VideoCapture cap = camera.initializeCamera();
 
-    // Open the lid
-    openLid(kit);
+    MLModel model;
+    model.loadUODDM("./models/object_detection.model", "./models/cfg_file.cfg");
+    model.loadMiDaS("./models/depth_perception.model");
 
-    // Wait 2 seconds
-    std::this_thread::sleep_for(std::chrono::seconds(2));
+    ServoActuator actuator;
+    PyObject *servoKit = actuator.initServoKit();
 
-    // Close the lid
-    closeLid(kit);
+    Navigation::RobotNavigator navigator(100, 100);
+    Navigation::RobotState state = navigator.getRobotState();
 
-    // Wait 2 seconds
-    std::this_thread::sleep_for(std::chrono::seconds(2));
-
-    // Finalize the Python Interpreter
-    Py_Finalize();
-}
-
-// ultrasonic sensor test
-void testUltrasonic()
-{
-    // create ultrasonic sensor object
-    UltSensor::UltrasonicSensor ultrasonicSensor = UltSensor::UltrasonicSensor();
-
-    // open new thread for reading
-    std::thread ultrasonicThread(&UltSensor::UltrasonicSensor::ultrasonicDistanceThread, &ultrasonicSensor);
-
-    for (int i = 0; i < 60; i++)
+    // Main loop
+    while (true)
     {
-        // print distance
-        // std::cout << ultrasonicSensor.getDistance() << std::endl;
-        ultrasonicSensor.printDebug();
-        // sleep for 1/4 second
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        cv::Mat image = camera.getCameraImage(cap);
+        cv::Mat enhancedImage = ImageProcessing::enhanceImageQuality(image);
+
+        std::vector<std::pair<std::string, cv::Rect>> detections = model.detectObjects("./path_to_image");
+
+        // Visualizing detected objects
+        std::vector<cv::Rect> boxes;
+        for (const auto &detection : detections)
+        {
+            boxes.push_back(detection.second);
+        }
+        cv::Mat imageWithBoxes = ImageProcessing::drawBoundingBoxes(enhancedImage, boxes);
+
+        // Update navigation based on state
+        switch (state)
+        {
+        case Navigation::RobotState::IDLE:
+            std::cout << "Robot is idle." << std::endl;
+            break;
+
+        case Navigation::RobotState::MOVING_TO_USER:
+            navigator.moveToUser();
+            break;
+
+        case Navigation::RobotState::WAITING_FOR_TRASH:
+            // waiting for 10 seconds
+            std::this_thread::sleep_for(std::chrono::seconds(10));
+            navigator.setRobotState(Navigation::RobotState::RETURNING_TO_BASE);
+            break;
+
+        case Navigation::RobotState::RETURNING_TO_BASE:
+            navigator.moveToBase();
+            break;
+
+        case Navigation::RobotState::AVOIDING_OBSTACLE:
+            navigator.handleObstacle();
+            break;
+        }
+
+        state = navigator.getRobotState();
     }
 
-    // stop reading
-    ultrasonicSensor.stopReading();
-    // join thread
-    ultrasonicThread.join();
-}
-
-int main(void)
-{
-    // testLid();
-    // testUltrasonic();
-
-    // initialize camera
-    cv::VideoCapture cap = initializeCamera();
-
-    // load onnx model
-    Ort::Session session = LoadModel("model/model-f6b98070.onnx");
-
-    // get input image from camera
-    cv::Mat input = getCameraImage(cap);
-
-    // convert input image to gpu memory
-    cv::cuda::GpuMat inputGpu = cv::cuda::GpuMat(input);
-
-    // run model on input image
-    cv::cuda::GpuMat output = RunModel(session, input);
-
-    // convert output image from gpu memory to cpu memory
-    cv::Mat outputCpu = cv::Mat(output);
-
-    // show output image
-    cv::imshow("output", outputCpu);
-    cv::waitKey(0);
-
-    // destroy camera
-    destroyCamera(cap);
+    camera.destroyCamera(cap);
 
     return 0;
 }

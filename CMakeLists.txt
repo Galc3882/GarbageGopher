@@ -24,7 +24,21 @@ find_package(ONNX REQUIRED)
 include_directories(${ONNX_INCLUDE_DIRS})
 target_link_libraries(GarbageGopher ${ONNX_LIBS})
 
-# # Enable verbose output
+# Link the GTSAM library (for localization)
+find_package(GTSAM REQUIRED)
+include_directories(${GTSAM_INCLUDE_DIRS})
+target_link_libraries(GarbageGopher ${GTSAM_LIBRARIES})
+
+# Link the Torch library (for MLModel)
+find_package(Torch REQUIRED)
+target_link_libraries(GarbageGopher "${TORCH_LIBRARIES}")
+
+# Link threads (for threading related functionality, e.g., UltrasonicSensor)
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+target_link_libraries(GarbageGopher Threads::Threads)
+
+# Enable verbose output
 # set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # Declare the dependency on Python 3.7 and the Jetson.GPIO library

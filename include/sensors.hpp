@@ -1,52 +1,53 @@
 #pragma once
-#ifndef SENSORS_HPP
-#define SENSORS_HPP
 
-// declare namespace for ultrasonic sensor
+#include <thread>
+#include <vector>
+#include <chrono>
+#include <JetsonGPIO.h>
+
 namespace UltSensor
 {
-    // declaration of the class UltrasonicSensor
     class UltrasonicSensor
     {
-        // Uses pins 19 for trigger and 21 for echo
-        // Send pulse and wait for echo using interupts, then calculate distance
-        // Ranging Distance : 2cm – 400 cm
-        // Resolution : 0.3 cm
-        // Measuring Angle: 30 degree
-
     public:
-        // constructor
+        // Constructor
         UltrasonicSensor();
-        // destructor
+
+        // Destructor
         ~UltrasonicSensor();
-        // debug function
-        void printDebug();
-        // get distance in cm
-        int getDistance();
-        // thread for reading
-        void ultrasonicDistanceThread();
-        // stop reading
+
+        // Stop reading from sensor
         void stopReading();
 
-    private:
-        // set trigger pin
-        int triggerPin;
-        // set echo pin
-        int echoPin;
-        // check if processing reading
-        bool processingReading;
-        // check if reading
-        bool reading;
-        // last sensor readings
-        int lastReadings[5];
-        // last reading time
-        std::chrono::high_resolution_clock::time_point lastReadingTime;
+        // Start reading from sensor using a separate thread
+        void ultrasonicDistanceThread();
 
-        // trigger reading
+        // Trigger a reading from the sensor
         void triggerReading();
-        // wait for echo pin to go high and then low to calculate distance
+
+        // Get the current distance measured by the sensor
+        int getDistance();
+
+    private:
+        // GPIO pin for triggering the sensor reading
+        int triggerPin;
+        
+        // GPIO pin for reading the echo signal
+        int echoPin;
+
+        // Flag indicating if a reading is currently being processed
+        bool processingReading;
+
+        // Flag indicating if the reading thread is active
+        bool reading;
+
+        // Time when the last reading was taken
+        std::chrono::time_point<std::chrono::high_resolution_clock> lastReadingTime;
+
+        // Circular buffer to store the last 5 readings
+        std::vector<int> lastReadings = std::vector<int>(5);
+
+        // Private method to wait for a reading to complete and compute the distance
         void waitForReading();
     };
-} // namespace UltSensor
-
-#endif // SENSORS_HPP
+}

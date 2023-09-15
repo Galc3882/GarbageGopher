@@ -4,6 +4,10 @@
 
 Welcome to the repository of `GarbageGopher`, a cutting-edge robotic solution that brings a paradigm shift in autonomous trash collection. Built upon C++, this project is an amalgamation of software design best practices, state-of-the-art algorithms, and intricate robotics.
 
+<p align="center">
+  <img src="https://github.com/Galc3882/GarbageGopher/assets/86870298/6a0a2027-acfb-40bc-b3b3-febc561dc69c" height="700"/>
+</p>
+
 ## Purpose
 
 The raison d'être of the `GarbageGopher` is not just to serve as an autonomous garbage collection robot, but to manifest a deep understanding of C++, algorithmic complexity, and robotics systems' architectural design.
